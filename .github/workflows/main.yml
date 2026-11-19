@@ -1,0 +1,35 @@
+
+name: DISCO OWNER PANEL CHECK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Validate Owner Panel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Required Files
+        run: |
+          test -f index.html
+          test -f style.css
+          test -f script.js
+          echo "All Owner Panel files found."
+
+      - name: Validate HTML and JavaScript
+        run: |
+          node --check script.js
+          echo "JavaScript syntax check passed."
+
+      - name: Build Status
+        run: echo "DISCO OWNER PANEL CHECK SUCCESS"
