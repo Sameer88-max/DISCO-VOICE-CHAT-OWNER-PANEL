@@ -1,9 +1,9 @@
 
 /* ==========================================
    DISCO VOICE CHAT
-   OWNER PANEL - COMPLETE SCRIPT
+   OWNER PANEL - COMPLETE UPDATED SCRIPT
    Firebase Authentication + Firestore
-   PNG / WEBM / MP4 FRAME UPLOAD
+   Cloudinary PNG / WEBM / MP4 FRAME UPLOAD
    ========================================== */
 
 // ==========================================
@@ -26,9 +26,14 @@ if (!firebase.apps.length) {
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 const OWNER_EMAIL = "tzindahai15@gmail.com";
+
+// Cloudinary unsigned upload configuration
+const CLOUDINARY_CLOUD_NAME = "disco_voice_chat";
+const CLOUDINARY_UPLOAD_PRESET = "x0bgvsgy";
+const CLOUDINARY_UPLOAD_URL =
+  `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
 
 let currentAdmin = null;
 let currentPage = "dashboard";
@@ -39,7 +44,7 @@ let authReady = false;
 const el = id => document.getElementById(id);
 
 // ==========================================
-// 2. HTML ELEMENTS
+// 2. HTML ELEMENTS & HELPERS
 // ==========================================
 
 const loginScreen = el("loginScreen");
@@ -75,6 +80,13 @@ function escapeHTML(value) {
 function updateSaveStatus(message) {
   const status = el("saveStatus");
   if (status) status.textContent = message;
+}
+
+function releaseFramePreview() {
+  if (framePreviewUrl) {
+    URL.revokeObjectURL(framePreviewUrl);
+    framePreviewUrl = null;
+  }
 }
 
 // ==========================================
@@ -150,7 +162,6 @@ if (loginForm) {
 // ==========================================
 
 auth.onAuthStateChanged(async user => {
-
   if (!user) {
     currentAdmin = null;
 
@@ -161,9 +172,7 @@ auth.onAuthStateChanged(async user => {
     return;
   }
 
-  // Only the fixed owner email is allowed.
   if ((user.email || "").toLowerCase() !== OWNER_EMAIL) {
-
     await auth.signOut();
 
     currentAdmin = null;
@@ -203,11 +212,7 @@ el("logoutBtn")?.addEventListener("click", async () => {
 
     currentAdmin = null;
     selectedFrameFile = null;
-
-    if (framePreviewUrl) {
-      URL.revokeObjectURL(framePreviewUrl);
-      framePreviewUrl = null;
-    }
+    releaseFramePreview();
 
     showError("Logged out successfully.");
 
@@ -250,7 +255,6 @@ async function loadDashboard() {
     <h3>Owner Dashboard</h3>
 
     <div class="dashboard-grid">
-
       <div class="dashboard-card">
         <h3>Total Users</h3>
         <strong id="totalUsers">Loading...</strong>
@@ -270,7 +274,6 @@ async function loadDashboard() {
         <h3>Total Frames</h3>
         <strong id="totalFrames">Loading...</strong>
       </div>
-
     </div>
 
     <h3>System Collections</h3>
@@ -348,7 +351,6 @@ async function loadUsers() {
 
       list.innerHTML = filtered.map(user => `
         <div class="dashboard-card">
-
           <h3>${escapeHTML(user.name || "Unknown User")}</h3>
 
           <p>ID: ${escapeHTML(user.id)}</p>
@@ -363,7 +365,6 @@ async function loadUsers() {
           <button data-add-coins="${escapeHTML(user.id)}">
             Add Coins
           </button>
-
         </div>
       `).join("");
 
@@ -410,7 +411,6 @@ async function addCoins(userId) {
     const transactionRef = db.collection("transactions").doc();
 
     await db.runTransaction(async transaction => {
-
       const userDoc = await transaction.get(userRef);
 
       if (!userDoc.exists) {
@@ -462,7 +462,6 @@ async function loadFrames() {
     <p>Upload transparent PNG and animated video frames.</p>
 
     <div class="dashboard-card frame-upload-card">
-
       <label>Frame Name</label>
       <input id="frameName"
         type="text"
@@ -503,7 +502,6 @@ async function loadFrames() {
         type="button">
         UPLOAD FRAME
       </button>
-
     </div>
 
     <h3>Uploaded Frames</h3>
@@ -511,12 +509,12 @@ async function loadFrames() {
     <div id="framesList">Loading frames...</div>
   `;
 
-  el("frameFile").addEventListener(
+  el("frameFile")?.addEventListener(
     "change",
     handleFrameSelection
   );
 
-  el("saveFrame").addEventListener(
+  el("saveFrame")?.addEventListener(
     "click",
     saveFrame
   );
@@ -532,28 +530,18 @@ function handleFrameSelection(event) {
   const file = event.target.files?.[0];
 
   selectedFrameFile = null;
-
-  if (framePreviewUrl) {
-    URL.revokeObjectURL(framePreviewUrl);
-    framePreviewUrl = null;
-  }
+  releaseFramePreview();
 
   const preview = el("framePreview");
   const status = el("frameUploadStatus");
 
-  if (!file) return;
+  if (!file || !preview || !status) return;
 
   const extension = file.name.split(".").pop().toLowerCase();
 
-  const isPng =
-    file.type === "image/png" || extension === "png";
-
-  const isWebM =
-    file.type === "video/webm" || extension === "webm";
-
-  const isMp4 =
-    file.type === "video/mp4" || extension === "mp4";
-
+  const isPng = extension === "png";
+  const isWebM = extension === "webm";
+  const isMp4 = extension === "mp4";
   const isVideo = isWebM || isMp4;
 
   if (!isPng && !isVideo) {
@@ -569,23 +557,28 @@ function handleFrameSelection(event) {
 
   if (file.size > maxSize) {
     event.target.value = "";
-    status.textContent = "File size limit exceeded.";
+    status.textContent = isPng
+      ? "PNG maximum size is 10 MB."
+      : "Video maximum size is 50 MB.";
     preview.textContent = "No preview available.";
     return;
   }
 
-  if (!file.type) {
-    status.textContent =
-      "File type could not be verified by browser.";
-    return;
-  }
+  const expectedType = isPng
+    ? "image/png"
+    : isWebM
+      ? "video/webm"
+      : "video/mp4";
 
+  // Android file pickers may return an empty or generic MIME type.
   if (
-    (isPng && file.type !== "image/png") ||
-    (isWebM && file.type !== "video/webm") ||
-    (isMp4 && file.type !== "video/mp4")
+    file.type &&
+    file.type !== "application/octet-stream" &&
+    file.type !== expectedType
   ) {
+    event.target.value = "";
     status.textContent = "File type does not match extension.";
+    preview.textContent = "No preview available.";
     return;
   }
 
@@ -612,7 +605,6 @@ function handleFrameSelection(event) {
     video.controls = true;
     video.muted = true;
     video.loop = true;
-    video.autoplay = true;
     video.playsInline = true;
     video.style.maxWidth = "100%";
     video.style.maxHeight = "240px";
@@ -620,16 +612,18 @@ function handleFrameSelection(event) {
     preview.appendChild(video);
   }
 
-  status.textContent =
-    file.name + " selected successfully.";
+  status.textContent = file.name + " selected successfully.";
 }
 
 // ==========================================
-// 13. UPLOAD FRAME TO FIREBASE
+// 13. UPLOAD FRAME TO CLOUDINARY
 // ==========================================
 
 async function saveFrame() {
-  if (!currentAdmin) return;
+  if (!currentAdmin) {
+    alert("Please login first.");
+    return;
+  }
 
   const name = el("frameName")?.value.trim();
   const price = Number(el("framePrice")?.value);
@@ -645,83 +639,124 @@ async function saveFrame() {
     return;
   }
 
-  const isPng = file.type === "image/png";
+  const extension = file.name.split(".").pop().toLowerCase();
+
+  const isPng = extension === "png";
+  const isWebM = extension === "webm";
+  const isMp4 = extension === "mp4";
+
+  if (!isPng && !isWebM && !isMp4) {
+    alert("Only PNG, WebM or MP4 files are allowed.");
+    return;
+  }
+
+  const maxSize = isPng
+    ? 10 * 1024 * 1024
+    : 50 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    alert("File size limit exceeded.");
+    return;
+  }
+
   const mediaType = isPng ? "image" : "video";
+
+  const contentType = isPng
+    ? "image/png"
+    : isWebM
+      ? "video/webm"
+      : "video/mp4";
 
   const button = el("saveFrame");
   const progress = el("frameProgress");
   const status = el("frameUploadStatus");
 
+  if (!button || !progress || !status) return;
+
   button.disabled = true;
   progress.hidden = false;
   progress.value = 0;
 
-  status.textContent = "Connecting to Firebase Storage...";
-
-  let uploadedRef = null;
+  status.textContent = "Connecting to Cloudinary...";
 
   try {
-    const safeName = file.name.replace(
-      /[^a-zA-Z0-9._-]/g,
-      "_"
-    );
+    const formData = new FormData();
 
-    const filePath =
-      `frames/${currentAdmin.uid}/${Date.now()}_${safeName}`;
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    formData.append("folder", "disco_voice_chat/frames");
 
-    uploadedRef = storage.ref().child(filePath);
+    const uploadResult = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
 
-    const uploadTask = uploadedRef.put(file, {
-      contentType: file.type,
-      customMetadata: {
-        uploadedBy: currentAdmin.uid,
-        originalName: file.name
-      }
-    });
+      xhr.open("POST", CLOUDINARY_UPLOAD_URL);
 
-    const downloadUrl = await new Promise((resolve, reject) => {
-
-      uploadTask.on(
-        "state_changed",
-
-        snapshot => {
+      xhr.upload.onprogress = event => {
+        if (event.lengthComputable) {
           const percent = Math.round(
-            snapshot.bytesTransferred /
-            snapshot.totalBytes * 100
+            (event.loaded / event.total) * 100
           );
 
           progress.value = percent;
-          status.textContent = `Uploading: ${percent}%`;
-        },
-
-        error => reject(error),
-
-        async () => {
-          try {
-            const url =
-              await uploadTask.snapshot.ref.getDownloadURL();
-
-            resolve(url);
-
-          } catch (error) {
-            reject(error);
-          }
+          status.textContent = `Cloudinary Upload: ${percent}%`;
         }
-      );
+      };
+
+      xhr.onload = () => {
+        let response;
+
+        try {
+          response = JSON.parse(xhr.responseText);
+        } catch {
+          reject(new Error("Invalid Cloudinary response."));
+          return;
+        }
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(response);
+        } else {
+          reject(
+            new Error(
+              response.error?.message ||
+              `Cloudinary upload failed (${xhr.status}).`
+            )
+          );
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Network error during Cloudinary upload."));
+      };
+
+      xhr.onabort = () => {
+        reject(new Error("Upload was cancelled."));
+      };
+
+      xhr.send(formData);
     });
+
+    if (!uploadResult.secure_url || !uploadResult.public_id) {
+      throw new Error("Cloudinary did not return a valid file URL.");
+    }
+
+    const downloadUrl = uploadResult.secure_url;
+
+    status.textContent = "Saving frame information to Firestore...";
 
     const frameData = {
       name,
       price,
 
       image: downloadUrl,
-
       imageUrl: isPng ? downloadUrl : "",
       videoUrl: isPng ? "" : downloadUrl,
 
-      storagePath: filePath,
+      storagePath: uploadResult.public_id,
+      cloudinaryPublicId: uploadResult.public_id,
+      cloudinaryResourceType: uploadResult.resource_type || "image",
+
       mediaType,
-      contentType: file.type,
+      contentType,
 
       active: false,
 
@@ -734,18 +769,18 @@ async function saveFrame() {
     await db.collection("frames").add(frameData);
 
     selectedFrameFile = null;
+    releaseFramePreview();
 
-    if (framePreviewUrl) {
-      URL.revokeObjectURL(framePreviewUrl);
-      framePreviewUrl = null;
+    if (el("frameFile")) el("frameFile").value = "";
+    if (el("frameName")) el("frameName").value = "";
+    if (el("framePrice")) el("framePrice").value = "";
+
+    if (el("framePreview")) {
+      el("framePreview").textContent =
+        "Select a PNG or video to preview.";
     }
 
-    el("frameFile").value = "";
-    el("frameName").value = "";
-    el("framePrice").value = "";
-
-    el("framePreview").textContent =
-      "Select a PNG or video to preview.";
+    progress.value = 100;
 
     status.textContent =
       "Upload successful! Frame saved as UNPUBLISHED.";
@@ -753,18 +788,9 @@ async function saveFrame() {
     await renderFramesList();
 
   } catch (error) {
-    console.error("Frame upload error:", error);
+    console.error("Cloudinary frame upload error:", error);
 
-    if (uploadedRef) {
-      try {
-        await uploadedRef.delete();
-      } catch (cleanupError) {
-        console.warn("Storage cleanup failed:", cleanupError);
-      }
-    }
-
-    status.textContent =
-      "Upload failed: " + error.message;
+    status.textContent = "Upload failed: " + error.message;
 
   } finally {
     button.disabled = false;
@@ -780,6 +806,8 @@ async function renderFramesList() {
 
   if (!list || !currentAdmin) return;
 
+  list.textContent = "Loading frames...";
+
   try {
     const snapshot = await db.collection("frames").get();
 
@@ -789,13 +817,17 @@ async function renderFramesList() {
     }
 
     list.innerHTML = snapshot.docs.map(doc => {
-
       const frame = doc.data();
+
+      const mediaUrl =
+        frame.mediaType === "video"
+          ? frame.videoUrl || frame.image || ""
+          : frame.imageUrl || frame.image || "";
 
       const media = frame.mediaType === "video"
         ? `
           <video
-            src="${escapeHTML(frame.videoUrl || frame.image || "")}"
+            src="${escapeHTML(mediaUrl)}"
             controls
             muted
             loop
@@ -805,7 +837,7 @@ async function renderFramesList() {
         `
         : `
           <img
-            src="${escapeHTML(frame.imageUrl || frame.image || "")}"
+            src="${escapeHTML(mediaUrl)}"
             alt="Frame preview"
             style="max-width:180px;max-height:130px;object-fit:contain">
         `;
@@ -814,7 +846,6 @@ async function renderFramesList() {
 
       return `
         <div class="dashboard-card">
-
           ${media}
 
           <h3>${escapeHTML(frame.name || "Frame")}</h3>
@@ -830,30 +861,24 @@ async function renderFramesList() {
             type="button"
             data-frame-toggle="${escapeHTML(doc.id)}"
             data-active="${active}">
-
             ${active ? "UNPUBLISH" : "PUBLISH"}
-
           </button>
-
         </div>
       `;
     }).join("");
 
     list.querySelectorAll("[data-frame-toggle]")
       .forEach(button => {
-
         button.addEventListener("click", () => {
-
           toggleFramePublish(
             button.dataset.frameToggle,
             button.dataset.active === "true"
           );
-
         });
       });
 
   } catch (error) {
-    console.error(error);
+    console.error("Frame list error:", error);
 
     list.textContent =
       "Unable to load frames: " + error.message;
@@ -871,7 +896,6 @@ async function toggleFramePublish(frameId, currentlyActive) {
     await db.collection("frames")
       .doc(frameId)
       .update({
-
         active: !currentlyActive,
 
         updatedAt:
@@ -920,21 +944,15 @@ async function loadGifts() {
 
     el("giftsList").innerHTML =
       snapshot.docs.map(doc => {
-
         const gift = doc.data();
 
         return `
           <div class="dashboard-card">
-
             <h3>${escapeHTML(gift.name || "Gift")}</h3>
-
             <p>Price: ${Number(gift.price || 0)} Coins</p>
-
             <p>ID: ${escapeHTML(doc.id)}</p>
-
           </div>
         `;
-
       }).join("");
 
   } catch (error) {
@@ -957,7 +975,6 @@ async function saveGift() {
 
   try {
     await db.collection("gifts").add({
-
       name,
       price,
       image,
@@ -984,29 +1001,22 @@ async function saveGift() {
 
 document.querySelectorAll("[data-page]")
   .forEach(button => {
-
     button.addEventListener("click", () => {
-
       if (!currentAdmin) return;
 
       document.querySelectorAll("[data-page]")
-        .forEach(item => {
-          item.classList.remove("active");
-        });
+        .forEach(item => item.classList.remove("active"));
 
       button.classList.add("active");
 
       const page = button.dataset.page;
-
       const breadcrumb = el("breadcrumb");
 
       if (breadcrumb) {
-        breadcrumb.textContent =
-          "Owner Panel / " + page;
+        breadcrumb.textContent = "Owner Panel / " + page;
       }
 
       switch (page) {
-
         case "dashboard":
           loadDashboard();
           break;
@@ -1024,7 +1034,6 @@ document.querySelectorAll("[data-page]")
           break;
 
         default:
-
           currentPage = page;
 
           pageContent.innerHTML = `
@@ -1040,11 +1049,9 @@ document.querySelectorAll("[data-page]")
 // ==========================================
 
 el("refreshBtn")?.addEventListener("click", () => {
-
   if (!currentAdmin) return;
 
   switch (currentPage) {
-
     case "users":
       loadUsers();
       break;
@@ -1067,12 +1074,10 @@ el("refreshBtn")?.addEventListener("click", () => {
 // ==========================================
 
 el("menuSearch")?.addEventListener("input", event => {
-
   const search = event.target.value.toLowerCase();
 
   document.querySelectorAll("[data-page]")
     .forEach(button => {
-
       button.style.display =
         button.textContent.toLowerCase().includes(search)
           ? "block"
@@ -1085,14 +1090,12 @@ el("menuSearch")?.addEventListener("input", event => {
 // ==========================================
 
 el("globalSearch")?.addEventListener("input", event => {
-
   const search = event.target.value.trim().toLowerCase();
 
   if (!search) return;
 
   document.querySelectorAll("[data-page]")
     .forEach(button => {
-
       button.style.display =
         button.textContent.toLowerCase().includes(search)
           ? "block"
@@ -1105,16 +1108,12 @@ el("globalSearch")?.addEventListener("input", event => {
 // ==========================================
 
 el("saveBtn")?.addEventListener("click", () => {
-
   if (!currentAdmin) return;
 
-  updateSaveStatus(
-    "No pending general settings changes."
-  );
+  updateSaveStatus("No pending general settings changes.");
 });
 
 el("discardBtn")?.addEventListener("click", () => {
-
   if (!currentAdmin) return;
 
   updateSaveStatus("No pending changes.");
@@ -1133,7 +1132,6 @@ el("closeModal")?.addEventListener("click", () => {
 // ==========================================
 
 el("emergencyBtn")?.addEventListener("click", () => {
-
   if (!currentAdmin) return;
 
   alert(
