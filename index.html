@@ -1,0 +1,186 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0c0e23">
+    <title>Disco Voice Chat | Owner Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">
+            <h2>🎧 DISCO</h2>
+            <span>VOICE CHAT</span>
+        </div>
+
+        <nav>
+            <a href="#dashboard" class="active">🏠 Dashboard</a>
+            <a href="#users">👥 Users Management</a>
+            <a href="#coins">🪙 Add Coins</a>
+            <a href="#frames">🖼️ Frame Store</a>
+            <a href="#gifts">🎁 Gifts Management</a>
+            <a href="#vip">👑 VIP / SVIP</a>
+            <a href="#wallet">💰 Wallet</a>
+            <a href="#recharge">💳 Recharge Records</a>
+            <a href="#staff">🛡️ Admin & Staff</a>
+            <a href="#settings">⚙️ Settings</a>
+        </nav>
+
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <button id="menuBtn" class="menu-btn">☰</button>
+            <div>
+                <h2>Owner Dashboard</h2>
+                <p>Disco Voice Chat Management</p>
+            </div>
+            <div class="owner-badge">👑 OWNER</div>
+        </header>
+
+        <section id="dashboard" class="page-section">
+            <h2>Dashboard Overview</h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span>👥 Total Users</span>
+                    <h2 id="totalUsers">0</h2>
+                </div>
+                <div class="stat-card">
+                    <span>🪙 Coins Distributed</span>
+                    <h2 id="totalCoins">0</h2>
+                </div>
+                <div class="stat-card">
+                    <span>🎁 Total Gifts</span>
+                    <h2 id="totalGifts">0</h2>
+                </div>
+                <div class="stat-card">
+                    <span>👑 VIP Members</span>
+                    <h2 id="vipMembers">0</h2>
+                </div>
+            </div>
+        </section>
+
+        <section id="users" class="page-section">
+            <h2>Users Management</h2>
+            <div class="panel-card">
+                <input type="number" id="searchUserId"
+                    placeholder="Enter User ID">
+                <button onclick="searchUser()">Search User</button>
+                <div id="userResult"></div>
+            </div>
+        </section>
+
+        <section id="coins" class="page-section">
+            <h2>Add Coins By User ID</h2>
+            <div class="panel-card">
+                <input type="number" id="coinUserId"
+                    placeholder="User ID">
+                <input type="number" id="coinAmount"
+                    placeholder="Coin Amount" min="1">
+                <button onclick="addCoins()">Add Coins</button>
+                <p id="coinMessage"></p>
+            </div>
+        </section>
+
+        <section id="frames" class="page-section">
+            <h2>Frame Store Management</h2>
+            <div class="panel-card">
+                <input type="text" id="frameName"
+                    placeholder="Frame Name">
+                <input type="number" id="framePrice"
+                    placeholder="Frame Price">
+                <input type="url" id="frameImage"
+                    placeholder="Frame Image URL">
+                <button onclick="addFrame()">Add Frame</button>
+                <div id="frameList"></div>
+            </div>
+        </section>
+
+        <section id="gifts" class="page-section">
+            <h2>Gifts Management</h2>
+            <div class="panel-card">
+                <input type="text" id="giftName"
+                    placeholder="Gift Name">
+                <input type="number" id="giftPrice"
+                    placeholder="Gift Coin Price">
+                <input type="url" id="giftImage"
+                    placeholder="Gift Image URL">
+                <button onclick="addGift()">Add Gift</button>
+                <div id="giftList"></div>
+            </div>
+        </section>
+
+        <section id="vip" class="page-section">
+            <h2>VIP / SVIP Management</h2>
+            <div class="panel-card">
+                <input type="number" id="vipUserId"
+                    placeholder="User ID">
+                <select id="vipType">
+                    <option value="VIP">VIP</option>
+                    <option value="SVIP">SVIP</option>
+                </select>
+                <button onclick="assignVip()">Assign Membership</button>
+                <p id="vipMessage"></p>
+            </div>
+        </section>
+
+        <section id="wallet" class="page-section">
+            <h2>Wallet Management</h2>
+            <div class="panel-card">
+                <input type="number" id="walletUserId"
+                    placeholder="User ID">
+                <button onclick="checkWallet()">Check Wallet</button>
+                <div id="walletResult"></div>
+            </div>
+        </section>
+
+        <section id="recharge" class="page-section">
+            <h2>Recharge Records</h2>
+            <div class="panel-card">
+                <p>Recharge history will appear here after backend connection.</p>
+                <div id="rechargeRecords"></div>
+            </div>
+        </section>
+
+        <section id="staff" class="page-section">
+            <h2>Admin & Staff Management</h2>
+            <div class="panel-card">
+                <input type="number" id="staffId"
+                    placeholder="Staff User ID">
+                <select id="staffRole">
+                    <option>Admin</option>
+                    <option>Manager</option>
+                    <option>Super Admin</option>
+                </select>
+                <button onclick="addStaff()">Add Staff</button>
+                <div id="staffList"></div>
+            </div>
+        </section>
+
+        <section id="settings" class="page-section">
+            <h2>Owner Settings</h2>
+            <div class="panel-card">
+                <p>Backend Connection: <span id="connectionStatus">Not Connected</span></p>
+                <p>Application: Disco Voice Chat</p>
+                <p>Panel Version: 1.0</p>
+            </div>
+        </section>
+
+        <footer>
+            © 2026 Disco Voice Chat. Owner Panel.
+        </footer>
+
+    </main>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
