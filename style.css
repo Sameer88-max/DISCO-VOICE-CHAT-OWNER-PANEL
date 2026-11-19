@@ -221,3 +221,82 @@ td { color: #e9dfee; }
   .stat-card h2 { font-size:17px; }
   .gold-btn,.outline-btn,.danger-btn { padding:9px; }
 }
+
+
+[hidden] {
+  display: none !important;
+}
+
+.frame-upload-card {
+  margin: 20px 0;
+  padding: 22px;
+}
+
+.frame-upload-card label {
+  display: block;
+  margin: 14px 0 7px;
+  color: #ffda8b;
+  font-weight: 700;
+}
+
+.frame-upload-card input {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #12091a;
+  border: 1px solid #493052;
+  border-radius: 7px;
+  color: white;
+}
+
+.frame-upload-card small {
+  display: block;
+  color: #aa99b4;
+  margin: 10px 0;
+}
+
+.frame-preview {
+  min-height: 180px;
+  margin: 18px 0;
+  padding: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background-color: #24132e;
+  background-image:
+    linear-gradient(45deg,#38253f 25%,transparent 25%),
+    linear-gradient(-45deg,#38253f 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#38253f 75%),
+    linear-gradient(-45deg,transparent 75%,#38253f 75%);
+  background-size: 20px 20px;
+  background-position: 0 0,0 10px,10px -10px,-10px 0;
+  border: 1px dashed #eab85c;
+  border-radius: 10px;
+}
+
+.frame-preview img,
+.frame-preview video {
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+}
+
+#frameProgress {
+  width: 100%;
+  height: 12px;
+  accent-color: #eab85c;
+  margin: 12px 0;
+}
+
+#frameUploadStatus {
+  color: #56d99b;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+
+#framesList .dashboard-card {
+  margin: 12px 0;
+  padding: 18px;
+}
