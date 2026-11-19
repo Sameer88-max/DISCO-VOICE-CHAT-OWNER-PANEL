@@ -2,185 +2,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0c0e23">
-    <title>Disco Voice Chat | Owner Panel</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#100817">
+  <title>DISCO VOICE CHAT | Owner Panel</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div class="app-container">
-
-    <aside class="sidebar" id="sidebar">
-        <div class="logo">
-            <h2>🎧 DISCO</h2>
-            <span>VOICE CHAT</span>
-        </div>
-
-        <nav>
-            <a href="#dashboard" class="active">🏠 Dashboard</a>
-            <a href="#users">👥 Users Management</a>
-            <a href="#coins">🪙 Add Coins</a>
-            <a href="#frames">🖼️ Frame Store</a>
-            <a href="#gifts">🎁 Gifts Management</a>
-            <a href="#vip">👑 VIP / SVIP</a>
-            <a href="#wallet">💰 Wallet</a>
-            <a href="#recharge">💳 Recharge Records</a>
-            <a href="#staff">🛡️ Admin & Staff</a>
-            <a href="#settings">⚙️ Settings</a>
-        </nav>
-
-        <button class="logout-btn" id="logoutBtn">Logout</button>
-    </aside>
-
-    <main class="main-content">
-
-        <header class="topbar">
-            <button id="menuBtn" class="menu-btn">☰</button>
-            <div>
-                <h2>Owner Dashboard</h2>
-                <p>Disco Voice Chat Management</p>
-            </div>
-            <div class="owner-badge">👑 OWNER</div>
-        </header>
-
-        <section id="dashboard" class="page-section">
-            <h2>Dashboard Overview</h2>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span>👥 Total Users</span>
-                    <h2 id="totalUsers">0</h2>
-                </div>
-                <div class="stat-card">
-                    <span>🪙 Coins Distributed</span>
-                    <h2 id="totalCoins">0</h2>
-                </div>
-                <div class="stat-card">
-                    <span>🎁 Total Gifts</span>
-                    <h2 id="totalGifts">0</h2>
-                </div>
-                <div class="stat-card">
-                    <span>👑 VIP Members</span>
-                    <h2 id="vipMembers">0</h2>
-                </div>
-            </div>
-        </section>
-
-        <section id="users" class="page-section">
-            <h2>Users Management</h2>
-            <div class="panel-card">
-                <input type="number" id="searchUserId"
-                    placeholder="Enter User ID">
-                <button onclick="searchUser()">Search User</button>
-                <div id="userResult"></div>
-            </div>
-        </section>
-
-        <section id="coins" class="page-section">
-            <h2>Add Coins By User ID</h2>
-            <div class="panel-card">
-                <input type="number" id="coinUserId"
-                    placeholder="User ID">
-                <input type="number" id="coinAmount"
-                    placeholder="Coin Amount" min="1">
-                <button onclick="addCoins()">Add Coins</button>
-                <p id="coinMessage"></p>
-            </div>
-        </section>
-
-        <section id="frames" class="page-section">
-            <h2>Frame Store Management</h2>
-            <div class="panel-card">
-                <input type="text" id="frameName"
-                    placeholder="Frame Name">
-                <input type="number" id="framePrice"
-                    placeholder="Frame Price">
-                <input type="url" id="frameImage"
-                    placeholder="Frame Image URL">
-                <button onclick="addFrame()">Add Frame</button>
-                <div id="frameList"></div>
-            </div>
-        </section>
-
-        <section id="gifts" class="page-section">
-            <h2>Gifts Management</h2>
-            <div class="panel-card">
-                <input type="text" id="giftName"
-                    placeholder="Gift Name">
-                <input type="number" id="giftPrice"
-                    placeholder="Gift Coin Price">
-                <input type="url" id="giftImage"
-                    placeholder="Gift Image URL">
-                <button onclick="addGift()">Add Gift</button>
-                <div id="giftList"></div>
-            </div>
-        </section>
-
-        <section id="vip" class="page-section">
-            <h2>VIP / SVIP Management</h2>
-            <div class="panel-card">
-                <input type="number" id="vipUserId"
-                    placeholder="User ID">
-                <select id="vipType">
-                    <option value="VIP">VIP</option>
-                    <option value="SVIP">SVIP</option>
-                </select>
-                <button onclick="assignVip()">Assign Membership</button>
-                <p id="vipMessage"></p>
-            </div>
-        </section>
-
-        <section id="wallet" class="page-section">
-            <h2>Wallet Management</h2>
-            <div class="panel-card">
-                <input type="number" id="walletUserId"
-                    placeholder="User ID">
-                <button onclick="checkWallet()">Check Wallet</button>
-                <div id="walletResult"></div>
-            </div>
-        </section>
-
-        <section id="recharge" class="page-section">
-            <h2>Recharge Records</h2>
-            <div class="panel-card">
-                <p>Recharge history will appear here after backend connection.</p>
-                <div id="rechargeRecords"></div>
-            </div>
-        </section>
-
-        <section id="staff" class="page-section">
-            <h2>Admin & Staff Management</h2>
-            <div class="panel-card">
-                <input type="number" id="staffId"
-                    placeholder="Staff User ID">
-                <select id="staffRole">
-                    <option>Admin</option>
-                    <option>Manager</option>
-                    <option>Super Admin</option>
-                </select>
-                <button onclick="addStaff()">Add Staff</button>
-                <div id="staffList"></div>
-            </div>
-        </section>
-
-        <section id="settings" class="page-section">
-            <h2>Owner Settings</h2>
-            <div class="panel-card">
-                <p>Backend Connection: <span id="connectionStatus">Not Connected</span></p>
-                <p>Application: Disco Voice Chat</p>
-                <p>Panel Version: 1.0</p>
-            </div>
-        </section>
-
-        <footer>
-            © 2026 Disco Voice Chat. Owner Panel.
-        </footer>
-
-    </main>
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="crown">♛</div>
+    <h1>DISCO VOICE CHAT</h1>
+    <p>SUPER ADMIN CONTROL CENTER</p>
+    <form id="loginForm">
+      <input id="email" type="email" placeholder="Owner Email" required>
+      <input id="password" type="password" placeholder="Password" required>
+      <button class="gold-btn" type="submit">SECURE LOGIN</button>
+      <p id="loginError" class="error"></p>
+    </form>
+  </div>
 </div>
 
+<div id="app" class="app hidden">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">♛</span>
+      <div>
+        <h2>OWNER PANEL</h2>
+        <small>Super Admin • DISCO PRO</small>
+      </div>
+    </div>
+
+    <input id="menuSearch" class="menu-search" placeholder="⌕  Search menus...">
+
+    <nav id="sidebarMenu">
+      <div class="menu-heading">MAIN CONTROL</div>
+      <button class="nav-item active" data-page="dashboard">◈ Dashboard</button>
+      <button class="nav-item" data-page="analytics">▥ Analytics</button>
+      <button class="nav-item" data-page="activity">◷ Activity Log</button>
+
+      <div class="menu-heading">USER MANAGEMENT</div>
+      <button class="nav-item" data-page="users">♙ User Management</button>
+      <button class="nav-item" data-page="rooms">▣ Live Room Control</button>
+      <button class="nav-item" data-page="staff">♜ Admin & Staff</button>
+      <button class="nav-item" data-page="agencies">♧ Agencies & BD</button>
+      <button class="nav-item" data-page="roles">♛ Roles & Permissions</button>
+
+      <div class="menu-heading">COINS & STORE</div>
+      <button class="nav-item" data-page="coins">◉ Coins Management</button>
+      <button class="nav-item" data-page="recharge">＋ Recharge Packages</button>
+      <button class="nav-item" data-page="wallet">▤ Wallet & Diamonds</button>
+      <button class="nav-item" data-page="gifts">♡ Gift Management</button>
+      <button class="nav-item" data-page="frames">✧ Frame Store</button>
+      <button class="nav-item" data-page="vip">♕ VIP / SVIP Control</button>
+      <button class="nav-item" data-page="payouts">⇧ Withdrawals & Payouts</button>
+      <button class="nav-item" data-page="commission">％ Commission Rules</button>
+
+      <div class="menu-heading">APP CONTROL</div>
+      <button class="nav-item" data-page="app">⚙ App Settings</button>
+      <button class="nav-item" data-page="security">⬡ Security Control</button>
+      <button class="nav-item" data-page="moderation">⚑ Moderation</button>
+      <button class="nav-item" data-page="events">★ Events & Rewards</button>
+      <button class="nav-item" data-page="notifications">♢ Notifications</button>
+      <button class="nav-item" data-page="broadcasts">➤ Broadcast Messages</button>
+      <button class="nav-item" data-page="reports">⚠ Reports</button>
+      <button class="nav-item" data-page="integrations">⌘ Integrations</button>
+      <button class="nav-item" data-page="backup">▣ Backup & Export</button>
+      <button class="nav-item" data-page="settings">⚙ System Settings</button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="admin-profile">
+        <div class="avatar">♛</div>
+        <div>
+          <b id="adminEmail">Owner</b>
+          <small>● Online</small>
+        </div>
+      </div>
+      <button id="logoutBtn" class="logout-btn">⇥ Logout</button>
+    </div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <div class="breadcrumb" id="breadcrumb">Owner Panel / Dashboard</div>
+      <div class="top-actions">
+        <input id="globalSearch" placeholder="⌕ Search all options...">
+        <button id="refreshBtn" class="outline-btn">↻ Refresh</button>
+        <button id="emergencyBtn" class="danger-btn">⚡ Emergency Stop</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div id="connectionStatus" class="connection-status">Connecting to Firebase...</div>
+      <div id="pageContent"></div>
+    </div>
+
+    <footer class="footer">
+      <span id="saveStatus">All changes saved</span>
+      <div>
+        <button id="discardBtn" class="outline-btn">Discard</button>
+        <button id="saveBtn" class="gold-btn">Save All Changes</button>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="modalTitle">Control</h3>
+      <button id="closeModal">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
