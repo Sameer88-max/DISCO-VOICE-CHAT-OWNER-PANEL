@@ -1,10 +1,11 @@
 
 /* ==========================================
    DISCO VOICE CHAT - OWNER PANEL
-   Firebase Configuration & Management
+   COMPLETE FIREBASE OWNER PANEL
+   FRAME PNG + TRANSPARENT VIDEO UPLOAD
    ========================================== */
 
-// 1. FIREBASE CONFIGURATION
+// FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyChGhLMnMsGWpmszHnzyvvyLEwemcDOEcY",
   authDomain: "disco-voice-chat.firebaseapp.com",
@@ -15,20 +16,23 @@ const firebaseConfig = {
   measurementId: "G-NJ9GPLLM4Q"
 };
 
-// 2. INITIALIZE FIREBASE
+// FIREBASE INITIALIZATION
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 let currentAdmin = null;
 let currentPage = "dashboard";
+let selectedFrameFile = null;
+let framePreviewUrl = null;
 
-// 3. HTML ELEMENTS
 const el = id => document.getElementById(id);
 
+// CONNECTION
 const loginScreen = el("loginScreen");
 const loginForm = el("loginForm");
 const loginError = el("loginError");
@@ -36,29 +40,27 @@ const appScreen = el("app");
 const pageContent = el("pageContent");
 const connectionStatus = el("connectionStatus");
 
-// 4. CONNECTION STATUS
 function setConnection(status, message) {
   if (!connectionStatus) return;
-
   connectionStatus.textContent = message;
   connectionStatus.dataset.status = status;
 }
 
-// 5. FIREBASE CONNECTION CHECK
+// FIREBASE CONNECTION
 db.collection("app_config").limit(1).get()
   .then(() => setConnection("connected", "Firebase Connected"))
   .catch(error => {
-    console.error("Firebase connection:", error);
+    console.error(error);
     setConnection("error", "Firebase Connection Error");
   });
 
-// 6. ADMIN LOGIN
+// LOGIN
 if (loginForm) {
   loginForm.addEventListener("submit", async event => {
     event.preventDefault();
 
-    const email = el("email")?.value.trim();
-    const password = el("password")?.value;
+    const email = el("email").value.trim();
+    const password = el("password").value;
 
     if (!email || !password) {
       showError("Enter email and password.");
@@ -66,10 +68,8 @@ if (loginForm) {
     }
 
     try {
-      loginError.textContent = "Signing in...";
-
+      showError("Signing in...");
       await auth.signInWithEmailAndPassword(email, password);
-
     } catch (error) {
       showError(error.message);
     }
@@ -80,12 +80,12 @@ function showError(message) {
   if (loginError) loginError.textContent = message;
 }
 
-// 7. AUTHENTICATION & OWNER VERIFICATION
+// AUTHORIZATION
 auth.onAuthStateChanged(async user => {
   if (!user) {
     currentAdmin = null;
-    if (loginScreen) loginScreen.hidden = false;
-    if (appScreen) appScreen.hidden = true;
+    loginScreen?.classList.remove("hidden");
+    appScreen?.classList.add("hidden");
     return;
   }
 
@@ -95,7 +95,7 @@ auth.onAuthStateChanged(async user => {
 
     if (!adminDoc.exists) {
       await auth.signOut();
-      showError("Admin account is not authorized.");
+      showError("Admin account not authorized.");
       return;
     }
 
@@ -114,15 +114,14 @@ auth.onAuthStateChanged(async user => {
 
     currentAdmin = user;
 
-    if (loginScreen) loginScreen.hidden = true;
-    if (appScreen) appScreen.hidden = false;
+    loginScreen?.classList.add("hidden");
+    appScreen?.classList.remove("hidden");
 
     if (el("adminEmail")) {
-      el("adminEmail").textContent = user.email;
+      el("adminEmail").textContent = user.email || "Owner";
     }
 
     setConnection("connected", "Firebase Connected");
-
     await loadDashboard();
 
   } catch (error) {
@@ -131,12 +130,12 @@ auth.onAuthStateChanged(async user => {
   }
 });
 
-// 8. LOGOUT
+// LOGOUT
 el("logoutBtn")?.addEventListener("click", async () => {
   await auth.signOut();
 });
 
-// 9. FIRESTORE COLLECTIONS
+// COLLECTIONS
 const collections = [
   "users",
   "rooms",
@@ -153,7 +152,18 @@ const collections = [
   "app_config"
 ];
 
-// 10. DASHBOARD
+// SAFE HTML
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+// DASHBOARD
 async function loadDashboard() {
   if (!currentAdmin) return;
 
@@ -168,17 +178,14 @@ async function loadDashboard() {
         <h3>Total Users</h3>
         <strong id="totalUsers">Loading...</strong>
       </div>
-
       <div class="dashboard-card">
         <h3>Total Rooms</h3>
         <strong id="totalRooms">Loading...</strong>
       </div>
-
       <div class="dashboard-card">
         <h3>Total Gifts</h3>
         <strong id="totalGifts">Loading...</strong>
       </div>
-
       <div class="dashboard-card">
         <h3>Total Frames</h3>
         <strong id="totalFrames">Loading...</strong>
@@ -199,23 +206,21 @@ async function loadDashboard() {
   for (const [name, target] of targets) {
     try {
       const snapshot = await db.collection(name).get();
-      const node = el(target);
-      if (node) node.textContent = snapshot.size;
+      if (el(target)) el(target).textContent = snapshot.size;
     } catch (error) {
-      const node = el(target);
-      if (node) node.textContent = "Unavailable";
+      if (el(target)) el(target).textContent = "Unavailable";
     }
   }
 
   const status = el("collectionStatus");
   if (status) {
     status.innerHTML = collections.map(name =>
-      `<div class="collection-item">${name}</div>`
+      `<div class="collection-item">${escapeHTML(name)}</div>`
     ).join("");
   }
 }
 
-// 11. USERS MANAGEMENT
+// USER MANAGEMENT
 async function loadUsers() {
   if (!currentAdmin) return;
 
@@ -228,8 +233,7 @@ async function loadUsers() {
   `;
 
   try {
-    const snapshot = await db.collection("users")
-      .limit(100).get();
+    const snapshot = await db.collection("users").limit(100).get();
 
     const users = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -238,6 +242,8 @@ async function loadUsers() {
 
     function renderUsers(search = "") {
       const list = el("usersList");
+      if (!list) return;
+
       const filtered = users.filter(user =>
         `${user.id} ${user.name || ""} ${user.email || ""}`
           .toLowerCase().includes(search.toLowerCase())
@@ -266,22 +272,23 @@ async function loadUsers() {
 
     renderUsers();
 
-    el("userSearch").addEventListener("input", event =>
-      renderUsers(event.target.value)
-    );
+    el("userSearch")?.addEventListener("input", event => {
+      renderUsers(event.target.value);
+    });
 
   } catch (error) {
     console.error(error);
-    el("usersList").textContent = "Unable to load users.";
+    if (el("usersList")) {
+      el("usersList").textContent = "Unable to load users.";
+    }
   }
 }
 
-// 12. ADD COINS
+// ADD COINS
 async function addCoins(userId) {
   if (!currentAdmin) return;
 
-  const input = el(`coins-${userId}`);
-  const amount = Number(input?.value);
+  const amount = Number(el(`coins-${userId}`)?.value);
 
   if (!Number.isSafeInteger(amount) || amount <= 0) {
     alert("Enter a valid coin amount.");
@@ -295,20 +302,15 @@ async function addCoins(userId) {
     await db.runTransaction(async transaction => {
       const userDoc = await transaction.get(userRef);
 
-      if (!userDoc.exists) {
-        throw new Error("User not found.");
-      }
+      if (!userDoc.exists) throw new Error("User not found.");
 
-      const oldCoins = Number(userDoc.data().coins || 0);
-      const newCoins = oldCoins + amount;
+      const newCoins = Number(userDoc.data().coins || 0) + amount;
 
       if (!Number.isSafeInteger(newCoins)) {
         throw new Error("Invalid coin balance.");
       }
 
-      transaction.update(userRef, {
-        coins: newCoins
-      });
+      transaction.update(userRef, { coins: newCoins });
 
       transaction.set(transactionRef, {
         userId,
@@ -323,12 +325,14 @@ async function addCoins(userId) {
     await loadUsers();
 
   } catch (error) {
-    console.error(error);
     alert("Coin update failed: " + error.message);
   }
 }
 
-// 13. FRAME STORE
+// ==========================================
+// FRAME STORE - DIRECT UPLOAD SYSTEM
+// ==========================================
+
 async function loadFrames() {
   if (!currentAdmin) return;
 
@@ -336,69 +340,332 @@ async function loadFrames() {
 
   pageContent.innerHTML = `
     <h2>Frame Store Management</h2>
+    <p>Upload transparent PNG and animated video frames.</p>
 
-    <input id="frameName" placeholder="Frame Name">
-    <input id="framePrice" type="number"
-      min="0" placeholder="Frame Price">
-    <input id="frameImage" placeholder="Frame Image URL">
+    <div class="dashboard-card frame-upload-card">
 
-    <button id="saveFrame">Add Frame</button>
-    <div id="framesList">Loading...</div>
+      <label>Frame Name</label>
+      <input id="frameName" type="text"
+        placeholder="Enter frame name">
+
+      <label>Frame Price</label>
+      <input id="framePrice" type="number"
+        min="0" step="1" placeholder="Coins">
+
+      <label>Frame File Upload</label>
+      <input id="frameFile" type="file"
+        accept=".png,.webm,.mp4,image/png,video/webm,video/mp4">
+
+      <small>
+        PNG: Maximum 10 MB.
+        Video: Maximum 50 MB.
+        Transparent WebM with alpha is recommended.
+      </small>
+
+      <div id="framePreview" class="frame-preview">
+        Select a PNG or video to preview.
+      </div>
+
+      <progress id="frameProgress"
+        value="0" max="100" hidden></progress>
+
+      <p id="frameUploadStatus" role="status"></p>
+
+      <button id="saveFrame" class="gold-btn" type="button">
+        UPLOAD FRAME
+      </button>
+
+    </div>
+
+    <h3>Uploaded Frames</h3>
+    <div id="framesList">Loading frames...</div>
   `;
 
+  el("frameFile").addEventListener("change", handleFrameSelection);
   el("saveFrame").addEventListener("click", saveFrame);
+
+  await renderFramesList();
+}
+
+// FILE SELECTION AND PREVIEW
+function handleFrameSelection(event) {
+  const file = event.target.files?.[0];
+
+  selectedFrameFile = null;
+
+  if (framePreviewUrl) {
+    URL.revokeObjectURL(framePreviewUrl);
+    framePreviewUrl = null;
+  }
+
+  const preview = el("framePreview");
+  const status = el("frameUploadStatus");
+
+  if (!file) return;
+
+  const isPng = file.type === "image/png";
+  const isWebM = file.type === "video/webm";
+  const isMp4 = file.type === "video/mp4";
+  const isVideo = isWebM || isMp4;
+
+  if (!isPng && !isVideo) {
+    event.target.value = "";
+    status.textContent = "Only PNG, WebM or MP4 files are allowed.";
+    preview.textContent = "No preview available.";
+    return;
+  }
+
+  const maxSize = isPng
+    ? 10 * 1024 * 1024
+    : 50 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    event.target.value = "";
+    status.textContent = "File size limit exceeded.";
+    preview.textContent = "No preview available.";
+    return;
+  }
+
+  selectedFrameFile = file;
+  framePreviewUrl = URL.createObjectURL(file);
+
+  preview.innerHTML = "";
+
+  if (isPng) {
+    const img = document.createElement("img");
+    img.src = framePreviewUrl;
+    img.alt = "Transparent PNG preview";
+    img.style.maxWidth = "100%";
+    img.style.maxHeight = "240px";
+    img.style.objectFit = "contain";
+    preview.appendChild(img);
+  } else {
+    const video = document.createElement("video");
+    video.src = framePreviewUrl;
+    video.controls = true;
+    video.muted = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.style.maxWidth = "100%";
+    video.style.maxHeight = "240px";
+    preview.appendChild(video);
+  }
+
+  status.textContent = file.name + " selected successfully.";
+}
+
+// UPLOAD TO FIREBASE STORAGE
+async function saveFrame() {
+  if (!currentAdmin) return;
+
+  const name = el("frameName")?.value.trim();
+  const price = Number(el("framePrice")?.value);
+  const file = selectedFrameFile;
+
+  if (!name || !Number.isSafeInteger(price) || price < 0 || !file) {
+    alert("Enter frame name, valid price and select a file.");
+    return;
+  }
+
+  const isPng = file.type === "image/png";
+  const mediaType = isPng ? "image" : "video";
+
+  const button = el("saveFrame");
+  const progress = el("frameProgress");
+  const status = el("frameUploadStatus");
+
+  button.disabled = true;
+  progress.hidden = false;
+  progress.value = 0;
+
+  status.textContent = "Connecting to Firebase Storage...";
+
+  let uploadedRef = null;
+
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+    const filePath =
+      `frames/${currentAdmin.uid}/${Date.now()}_${safeName}`;
+
+    uploadedRef = storage.ref().child(filePath);
+
+    const uploadTask = uploadedRef.put(file, {
+      contentType: file.type,
+      customMetadata: {
+        uploadedBy: currentAdmin.uid,
+        originalName: file.name
+      }
+    });
+
+    const downloadUrl = await new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+
+        snapshot => {
+          const percent = Math.round(
+            snapshot.bytesTransferred /
+            snapshot.totalBytes * 100
+          );
+
+          progress.value = percent;
+          status.textContent = `Uploading: ${percent}%`;
+        },
+
+        error => reject(error),
+
+        async () => {
+          try {
+            const url = await uploadTask.snapshot.ref.getDownloadURL();
+            resolve(url);
+          } catch (error) {
+            reject(error);
+          }
+        }
+      );
+    });
+
+    const frameData = {
+      name,
+      price,
+
+      // Compatibility with older app field
+      image: downloadUrl,
+
+      imageUrl: isPng ? downloadUrl : "",
+      videoUrl: isPng ? "" : downloadUrl,
+
+      storagePath: filePath,
+      mediaType,
+      contentType: file.type,
+
+      // New uploads stay hidden until manually published
+      active: false,
+
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: currentAdmin.uid
+    };
+
+    await db.collection("frames").add(frameData);
+
+    selectedFrameFile = null;
+
+    if (framePreviewUrl) {
+      URL.revokeObjectURL(framePreviewUrl);
+      framePreviewUrl = null;
+    }
+
+    status.textContent =
+      "Upload successful! Frame saved as UNPUBLISHED.";
+
+    await renderFramesList();
+
+  } catch (error) {
+    console.error("Frame upload error:", error);
+
+    // Remove orphaned upload if Firestore save failed
+    if (uploadedRef) {
+      try {
+        await uploadedRef.delete();
+      } catch (cleanupError) {
+        console.warn("Storage cleanup failed:", cleanupError);
+      }
+    }
+
+    status.textContent = "Upload failed: " + error.message;
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// LOAD FRAME LIST
+async function renderFramesList() {
+  const list = el("framesList");
+  if (!list || !currentAdmin) return;
 
   try {
     const snapshot = await db.collection("frames").get();
 
-    el("framesList").innerHTML = snapshot.docs.map(doc => {
+    if (snapshot.empty) {
+      list.textContent = "No frames uploaded yet.";
+      return;
+    }
+
+    list.innerHTML = snapshot.docs.map(doc => {
       const frame = doc.data();
+
+      const media = frame.mediaType === "video"
+        ? `
+          <video
+            src="${escapeHTML(frame.videoUrl || frame.image || "")}"
+            controls muted loop playsinline
+            style="max-width:180px;max-height:130px">
+          </video>
+        `
+        : `
+          <img
+            src="${escapeHTML(frame.imageUrl || frame.image || "")}"
+            alt="Frame preview"
+            style="max-width:180px;max-height:130px;object-fit:contain">
+        `;
+
+      const active = frame.active !== false;
 
       return `
         <div class="dashboard-card">
+          ${media}
           <h3>${escapeHTML(frame.name || "Frame")}</h3>
           <p>Price: ${Number(frame.price || 0)} Coins</p>
-          <p>ID: ${escapeHTML(doc.id)}</p>
+          <p>Type: ${frame.mediaType === "video" ? "Video" : "PNG"}</p>
+          <p>Status: ${active ? "Published" : "Unpublished"}</p>
+
+          <button
+            class="outline-btn"
+            type="button"
+            data-frame-toggle="${escapeHTML(doc.id)}"
+            data-active="${active}">
+            ${active ? "UNPUBLISH" : "PUBLISH"}
+          </button>
         </div>
       `;
     }).join("");
 
-  } catch (error) {
-    el("framesList").textContent = "Unable to load frames.";
-  }
-}
-
-async function saveFrame() {
-  if (!currentAdmin) return;
-
-  const name = el("frameName").value.trim();
-  const price = Number(el("framePrice").value);
-  const image = el("frameImage").value.trim();
-
-  if (!name || !Number.isSafeInteger(price) || price < 0) {
-    alert("Enter valid frame information.");
-    return;
-  }
-
-  try {
-    await db.collection("frames").add({
-      name,
-      price,
-      image,
-      active: true,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: currentAdmin.uid
+    list.querySelectorAll("[data-frame-toggle]").forEach(button => {
+      button.addEventListener("click", () => {
+        toggleFramePublish(
+          button.dataset.frameToggle,
+          button.dataset.active === "true"
+        );
+      });
     });
 
-    alert("Frame added successfully.");
-    await loadFrames();
-
   } catch (error) {
-    alert("Frame save failed: " + error.message);
+    console.error(error);
+    list.textContent = "Unable to load frames: " + error.message;
   }
 }
 
-// 14. GIFTS MANAGEMENT
+// PUBLISH / UNPUBLISH
+async function toggleFramePublish(frameId, currentlyActive) {
+  if (!currentAdmin) return;
+
+  try {
+    await db.collection("frames").doc(frameId).update({
+      active: !currentlyActive,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentAdmin.uid
+    });
+
+    await renderFramesList();
+
+  } catch (error) {
+    alert("Publish update failed: " + error.message);
+  }
+}
+
+// GIFTS MANAGEMENT
 async function loadGifts() {
   if (!currentAdmin) return;
 
@@ -408,8 +675,8 @@ async function loadGifts() {
     <h2>Gift Management</h2>
 
     <input id="giftName" placeholder="Gift Name">
-    <input id="giftPrice" type="number"
-      min="0" placeholder="Gift Price">
+    <input id="giftPrice" type="number" min="0"
+      placeholder="Gift Price">
     <input id="giftImage" placeholder="Gift Image URL">
 
     <button id="saveGift">Add Gift</button>
@@ -469,21 +736,16 @@ async function saveGift() {
   }
 }
 
-// 15. SAFE HTML OUTPUT
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
-}
-
-// 16. SIDEBAR NAVIGATION
+// SIDEBAR NAVIGATION
 document.querySelectorAll("[data-page]").forEach(button => {
   button.addEventListener("click", () => {
     if (!currentAdmin) return;
+
+    document.querySelectorAll("[data-page]").forEach(item => {
+      item.classList.remove("active");
+    });
+
+    button.classList.add("active");
 
     const page = button.dataset.page;
 
@@ -491,40 +753,75 @@ document.querySelectorAll("[data-page]").forEach(button => {
       case "dashboard":
         loadDashboard();
         break;
+
       case "users":
         loadUsers();
         break;
+
       case "frames":
         loadFrames();
         break;
+
       case "gifts":
         loadGifts();
         break;
+
       default:
-        pageContent.innerHTML =
-          `<h2>${escapeHTML(page)}</h2>
-           <p>This module is not implemented yet.</p>`;
+        currentPage = page;
+        pageContent.innerHTML = `
+          <h2>${escapeHTML(page)}</h2>
+          <p>This module is not implemented yet.</p>
+        `;
     }
   });
 });
 
-// 17. REFRESH BUTTON
+// REFRESH
 el("refreshBtn")?.addEventListener("click", () => {
   if (!currentAdmin) return;
 
   switch (currentPage) {
-    case "users": loadUsers(); break;
-    case "frames": loadFrames(); break;
-    case "gifts": loadGifts(); break;
-    default: loadDashboard();
+    case "users":
+      loadUsers();
+      break;
+
+    case "frames":
+      loadFrames();
+      break;
+
+    case "gifts":
+      loadGifts();
+      break;
+
+    default:
+      loadDashboard();
   }
 });
 
-// 18. SAVE STATUS
+// SEARCH MENUS
+el("menuSearch")?.addEventListener("input", event => {
+  const search = event.target.value.toLowerCase();
+
+  document.querySelectorAll("[data-page]").forEach(button => {
+    button.style.display = button.textContent.toLowerCase()
+      .includes(search) ? "block" : "none";
+  });
+});
+
+// SAVE STATUS
 function updateSaveStatus(message) {
   const status = el("saveStatus");
   if (status) status.textContent = message;
 }
 
-console.log("DISCO VOICE CHAT Owner Panel initialized.");
-  
+// DISCARD / SAVE PLACEHOLDERS
+el("saveBtn")?.addEventListener("click", () => {
+  updateSaveStatus("No pending general settings changes.");
+});
+
+el("discardBtn")?.addEventListener("click", () => {
+  updateSaveStatus("No pending changes.");
+});
+
+// MODAL
+el("closeModal")?.addEv
